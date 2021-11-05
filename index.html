@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="#" type="image/x-icon">
+    <title>Success</title>
+</head>
+<body>
+    <center id="playing"></center>
+    <div id="menu">
+        <center style="margin-top: 15%;">
+            <iframe src="https://ropro.io/sandbox_test/?user=1509293051&wave" frameborder="0"></iframe>
+            <p style="font-size: 100px;">Hello</p>
+            <button id="start" style="padding: 20px 90px 10px 90px;background-color: green;outline: none;border: none;border-radius: 10px;font-size: 20px;">Start</button>
+        </center>
+    </div>
+    <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
+    <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
+    <script type="module" referrerpolicy="same-origin">
+        import * as THREE from 'https://unpkg.com/three@0.134.0/build/three.min.js';
+    </script>
+    <script src="https://unpkg.com/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="/script/client.js"></script>
+    <script>
+        socket.on('connection')
+        document.getElementById("playing").innerHTML=`Playing on ${window.location} ✅`;
+        const scene = new THREE.Scene();
+        // Init camera (PerspectiveCamera)
+        const camera = new THREE.PerspectiveCamera(
+            140,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+
+        // Init renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        // Set size (whole window)
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        // Render to canvas element
+        document.body.appendChild(renderer.domElement);
+        // Init BoxGeometry object (rectangular cuboid)
+        const geometry = new THREE.BoxGeometry(3, 3, 3);
+        // Create material with color
+        const texture = new THREE.TextureLoader().load('/file/brick.jpg');
+        const material = new THREE.MeshBasicMaterial({ map: texture });
+        const cube = new THREE.Mesh(geometry, material);
+        var materialArray=[];
+        let textureAll = new THREE.TextureLoader().load('/file/carpet.jpg')
+        materialArray.push(new THREE.MeshBasicMaterial({map: textureAll}))
+        materialArray.push(new THREE.MeshBasicMaterial({map: textureAll}))
+        materialArray.push(new THREE.MeshBasicMaterial({map: textureAll}))
+        materialArray.push(new THREE.MeshBasicMaterial({map: textureAll}))
+        materialArray.push(new THREE.MeshBasicMaterial({map: textureAll}))
+        materialArray.push(new THREE.MeshBasicMaterial({map: textureAll}))
+
+        for (let i = 0; i <6; i++) {
+            materialArray[i].side=THREE.BackSide;
+        }
+
+        const skygeometry = new THREE.BoxGeometry(1000, 1000, 1000);
+        const skybox = new THREE.Mesh(skygeometry, materialArray);
+        scene.add(camera);
+        // scene.add(cube);
+        scene.add(skybox);
+        camera.position.z=5;
+        // camera.position.y=10;
+        // camera.rotation.x=6
+        // cube2.position.x=5
+        // cube2.position.z=-5
+        const controls = new THREE.OrbitControls( camera, renderer.domElement );
+        controls.enablePan=false;
+        controls.rotateSpeed=1;
+        controls.enableDamping=true;
+        controls.dampingFactor = 0.09
+        // controls.minDistance=500;
+        controls.maxDistance=500;
+        socket.on('setId', id => {
+            console.log(id.id)
+        })
+        document.getElementById("start").addEventListener("click",function(){
+            document.getElementById("menu").style.display="none";
+            scene.add(cube)
+        });
+        // socket.on('getcubes', item => {
+            //     var game = item;
+            
+            //         game.cubes=Number(game.cubes+1)
+            //         console.log(game.cubes)
+            //         for (let index = 0; index < game.cubes; index++) {
+        //             scene.add(new THREE.Mesh(geometry, material))
+        //         }
+        // });
+        socket.on('remoteData', data => {
+            cube.position.x=data.x;
+            cube.position.y=data.y;
+            cube.position.z=data.z;
+        })
+        function animate(){
+            requestAnimationFrame(animate)
+            // cube.position.z+=-0.08
+            window.addEventListener("keypress", (key) => {
+                if(key.key=="w"){
+                    cube.position.z+=-0.0001;
+                    socket.emit('update',{
+                        x: cube.position.x,
+                        y: cube.position.y,
+                        z: cube.position.z,
+                    })
+                }
+                if(key.key=="s"){
+                    cube.position.z+=0.0001;
+                    socket.emit('update',{
+                        x: cube.position.x,
+                        y: cube.position.y,
+                        z: cube.position.z,
+                    })
+                }
+                if(key.key=="a"){
+                    cube.position.x+=-0.0001;
+                    socket.emit('update',{
+                        x: cube.position.x,
+                        y: cube.position.y,
+                        z: cube.position.z,
+                    })
+                }
+                if(key.key=="d"){
+                    cube.position.x+=0.0001;
+                    socket.emit('update',{
+                        x: cube.position.x,
+                        y: cube.position.y,
+                        z: cube.position.z,
+                    })
+                }
+                if(key.key=="e"){
+                    camera.position.y+=-0.0001;
+                }
+                if(key.key=="r"){
+                    camera.position.y+=0.0001;
+                }
+                if(key.key=="f"){
+                    socket.emit('update',{
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                    })
+                }
+                if(key.key=="r"){
+                    camera.position.x+=0.0001;
+                }
+            })
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            // After making changes to aspect
+            camera.updateProjectionMatrix();
+            // Reset size
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', onWindowResize, false);
+        const pt = new THREE.Vector3(0,1,2);
+        camera.lookAt(pt)
+        //design canavas
+    </script>
+    <style>
+        *{
+            box-sizing: border-box;
+            margin: 0;
+            color: white;
+        }
+        #playing{
+            position: absolute;
+            left: 40%;
+        }
+        #menu{
+            position: absolute;
+            background-color: black;
+            width: 100vw;
+            height: 100vh;
+            /* display: none; */
+        }
+        #start{
+            background-color: rgb(0, 0, 0);
+        }
+    </style>
+</body>
+</html>
